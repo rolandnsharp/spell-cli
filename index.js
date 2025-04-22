@@ -7,7 +7,10 @@ const path = require('path');
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-const inputArg = process.argv[2];
+const args = process.argv.slice(2);
+const repeatIndex = args.findIndex(arg => arg === '-r' || arg === '--repeat');
+const repeatCount = (repeatIndex !== -1 && args[repeatIndex + 1]) ? parseInt(args[repeatIndex + 1], 10) : 1;
+const inputArg = args.find(arg => !arg.startsWith('-') && isNaN(arg));
 const wordToAdd = inputArg && !inputArg.endsWith('.txt') ? inputArg : null;
 const filename = 'spellingList.txt';
 const filepath = path.resolve(process.cwd(), filename);
@@ -19,7 +22,7 @@ if (wordToAdd) {
   process.exit(0);
 }
 
-let wordList = fs.readFileSync(filepath, 'utf8')
+const wordList = fs.readFileSync(filepath, 'utf8')
   .split('\n')
   .map(w => w.trim())
   .filter(w => w.length > 0);
@@ -29,6 +32,7 @@ let userInput = '';
 let hasStarted = false;
 let mode = 'typing';
 let currentDefinition = '';
+let correctStreak = 0;
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -66,11 +70,13 @@ function center(text) {
   }).join('\n');
 }
 
-function display() {
+function display(wordOverride = null) {
   const word = wordList[index];
   let displayWord;
 
-  if (!hasStarted) {
+  if (wordOverride !== null) {
+    displayWord = wordOverride;
+  } else if (!hasStarted) {
     displayWord = word;
   } else {
     const typed = userInput;
@@ -78,19 +84,24 @@ function display() {
     displayWord = typed + blanks;
   }
 
-  process.stdout.write('\x1Bc'); // clear screen
+  process.stdout.write('\x1Bc');
   hideCursor();
-  console.log('\n\n\n\n'); // padding
+  console.log('\n\n\n\n');
   console.log(center(displayWord));
   console.log('\n' + center(chalk.yellow(`💡 ${currentDefinition}`)));
+  console.log('\n' + center(chalk.gray(`✅ ${correctStreak}/${repeatCount}`)));
 }
 
 function flashError() {
   const word = wordList[index];
+  const width = process.stdout.columns || 80;
+  const pad = Math.floor((width - word.length) / 2);
+  const padding = ' '.repeat(Math.max(pad, 0));
+
   process.stdout.write('\x1Bc');
   hideCursor();
   console.log('\n\n\n\n');
-  console.log(center(chalk.bgRed.white(word)));
+  console.log(padding + chalk.bgRed.white(word));
   console.log('\n' + center(chalk.red('Wrong! Try again.')));
 }
 
@@ -101,24 +112,20 @@ process.stdin.on('keypress', async (str, key) => {
   }
 
   if (key.sequence === '\u0004') { // Ctrl+D to delete current word
-    const deletedWord = wordList.splice(index, 1)[0];
-    fs.writeFileSync(filepath, wordList.join('\n'));
-    userInput = '';
-    hasStarted = false;
-    mode = 'typing';
-    if (index >= wordList.length) {
-      process.stdout.write('\x1Bc');
-      hideCursor();
-      console.log('\n\n\n' + center(chalk.green('All Done!')));
-      showCursor();
-      process.exit();
+    if (wordList[index]) {
+      const deleted = wordList.splice(index, 1);
+      fs.writeFileSync(filepath, wordList.join('\n'));
+      console.log(chalk.red(`\nDeleted word: ${deleted[0]}`));
+      if (index >= wordList.length) index = 0;
+      userInput = '';
+      correctStreak = 0;
+      if (wordList.length === 0) {
+        console.log(chalk.red('No more words left.'));
+        process.exit();
+      }
+      currentDefinition = await getDefinition(wordList[index]);
+      display();
     }
-    currentDefinition = await getDefinition(wordList[index]);
-    process.stdout.write('\x1Bc');
-    hideCursor();
-    console.log('\n\n\n\n');
-    console.log(center(chalk.red(`Deleted "${deletedWord}" from list.`)));
-    setTimeout(display, 1000);
     return;
   }
 
@@ -131,9 +138,14 @@ process.stdin.on('keypress', async (str, key) => {
     if (word.startsWith(userInput)) {
       display();
       if (userInput === word) {
-        index++;
+        correctStreak++;
         userInput = '';
         hasStarted = false;
+
+        if (correctStreak >= repeatCount) {
+          index++;
+          correctStreak = 0;
+        }
 
         if (index >= wordList.length) {
           process.stdout.write('\x1Bc');
@@ -154,6 +166,7 @@ process.stdin.on('keypress', async (str, key) => {
         userInput = '';
         hasStarted = false;
         mode = 'typing';
+        correctStreak = 0;
         display();
       }, 700);
     }
