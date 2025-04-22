@@ -19,7 +19,7 @@ if (wordToAdd) {
   process.exit(0);
 }
 
-const wordList = fs.readFileSync(filepath, 'utf8')
+let wordList = fs.readFileSync(filepath, 'utf8')
   .split('\n')
   .map(w => w.trim())
   .filter(w => w.length > 0);
@@ -66,13 +66,11 @@ function center(text) {
   }).join('\n');
 }
 
-function display(wordOverride = null) {
+function display() {
   const word = wordList[index];
   let displayWord;
 
-  if (wordOverride !== null) {
-    displayWord = wordOverride;
-  } else if (!hasStarted) {
+  if (!hasStarted) {
     displayWord = word;
   } else {
     const typed = userInput;
@@ -80,25 +78,19 @@ function display(wordOverride = null) {
     displayWord = typed + blanks;
   }
 
-  process.stdout.write('\x1Bc');
+  process.stdout.write('\x1Bc'); // clear screen
   hideCursor();
-  console.log('\n\n\n\n');
+  console.log('\n\n\n\n'); // padding
   console.log(center(displayWord));
   console.log('\n' + center(chalk.yellow(`💡 ${currentDefinition}`)));
 }
 
 function flashError() {
   const word = wordList[index];
-
-  // Get how the regular word would be centered
-  const width = process.stdout.columns || 80;
-  const pad = Math.floor((width - word.length) / 2);
-  const padding = ' '.repeat(Math.max(pad, 0));
-
-  process.stdout.write('\x1Bc'); // clear screen
+  process.stdout.write('\x1Bc');
   hideCursor();
   console.log('\n\n\n\n');
-  console.log(padding + chalk.bgRed.white(word)); // exactly same horizontal offset
+  console.log(center(chalk.bgRed.white(word)));
   console.log('\n' + center(chalk.red('Wrong! Try again.')));
 }
 
@@ -106,6 +98,28 @@ process.stdin.on('keypress', async (str, key) => {
   if (key.sequence === '\u0003') {
     showCursor();
     process.exit(); // Ctrl+C
+  }
+
+  if (key.sequence === '\u0004') { // Ctrl+D to delete current word
+    const deletedWord = wordList.splice(index, 1)[0];
+    fs.writeFileSync(filepath, wordList.join('\n'));
+    userInput = '';
+    hasStarted = false;
+    mode = 'typing';
+    if (index >= wordList.length) {
+      process.stdout.write('\x1Bc');
+      hideCursor();
+      console.log('\n\n\n' + center(chalk.green('All Done!')));
+      showCursor();
+      process.exit();
+    }
+    currentDefinition = await getDefinition(wordList[index]);
+    process.stdout.write('\x1Bc');
+    hideCursor();
+    console.log('\n\n\n\n');
+    console.log(center(chalk.red(`Deleted "${deletedWord}" from list.`)));
+    setTimeout(display, 1000);
+    return;
   }
 
   if (!hasStarted) hasStarted = true;
