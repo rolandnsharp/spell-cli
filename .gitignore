@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Optional npm cache directory
+.npm
+
+# Mac and Linux system files
+.DS_Store
+Thumbs.db
+
+# VSCode settings
+.vscode/
+
+# Build output
+dist/
+build/
+
+# Compiled binary if you ever generate one
+*.exe
+*.out
+*.app
+
+# Local test data
+spellingList.txt
