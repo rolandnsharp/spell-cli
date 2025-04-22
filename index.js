@@ -58,7 +58,7 @@ async function getDefinition(word) {
     const def = data[0]?.meanings[0]?.definitions[0]?.definition;
     return def || chalk.gray('(no definition found)');
   } catch {
-    return chalk.gray('(definition unavailable)');
+    // return chalk.gray('(definition unavailable)');
   }
 }
 
@@ -70,7 +70,7 @@ function center(text) {
   }).join('\n');
 }
 
-function display(wordOverride = null) {
+function display(wordOverride = null, colorFn = chalk.white) {
   const word = wordList[index];
   let displayWord;
 
@@ -80,53 +80,30 @@ function display(wordOverride = null) {
     displayWord = word;
   } else {
     const typed = userInput;
-    const blanks = '_'.repeat(word.length - userInput.length);
+    const blanks = ' '.repeat(word.length - userInput.length);
     displayWord = typed + blanks;
   }
 
   process.stdout.write('\x1Bc');
   hideCursor();
   console.log('\n\n\n\n');
-  console.log(center(displayWord));
-  console.log('\n' + center(chalk.yellow(`💡 ${currentDefinition}`)));
-  console.log('\n' + center(chalk.gray(`✅ ${correctStreak}/${repeatCount}`)));
+  console.log(center(colorFn(displayWord)));
+  // console.log('\n' + center(chalk.yellow(`💡 ${currentDefinition}`)));
+  // console.log('\n' + center(chalk.gray(`✅ ${correctStreak}/${repeatCount}`)));
 }
 
-function flashError() {
+function flash(colorFn) {
   const word = wordList[index];
-  const width = process.stdout.columns || 80;
-  const pad = Math.floor((width - word.length) / 2);
-  const padding = ' '.repeat(Math.max(pad, 0));
-
   process.stdout.write('\x1Bc');
   hideCursor();
   console.log('\n\n\n\n');
-  console.log(padding + chalk.bgRed.white(word));
-  console.log('\n' + center(chalk.red('Wrong! Try again.')));
+  console.log(center(colorFn(word)));
 }
 
 process.stdin.on('keypress', async (str, key) => {
   if (key.sequence === '\u0003') {
     showCursor();
-    process.exit(); // Ctrl+C
-  }
-
-  if (key.sequence === '\u0004') { // Ctrl+D to delete current word
-    if (wordList[index]) {
-      const deleted = wordList.splice(index, 1);
-      fs.writeFileSync(filepath, wordList.join('\n'));
-      console.log(chalk.red(`\nDeleted word: ${deleted[0]}`));
-      if (index >= wordList.length) index = 0;
-      userInput = '';
-      correctStreak = 0;
-      if (wordList.length === 0) {
-        console.log(chalk.red('No more words left.'));
-        process.exit();
-      }
-      currentDefinition = await getDefinition(wordList[index]);
-      display();
-    }
-    return;
+    process.exit();
   }
 
   if (!hasStarted) hasStarted = true;
@@ -138,6 +115,8 @@ process.stdin.on('keypress', async (str, key) => {
     if (word.startsWith(userInput)) {
       display();
       if (userInput === word) {
+        mode = 'success';
+        flash(chalk.green);
         correctStreak++;
         userInput = '';
         hasStarted = false;
@@ -148,20 +127,25 @@ process.stdin.on('keypress', async (str, key) => {
         }
 
         if (index >= wordList.length) {
-          process.stdout.write('\x1Bc');
-          hideCursor();
-          console.log('\n\n\n' + center(chalk.green('All Done!')));
-          showCursor();
-          process.exit();
+          setTimeout(() => {
+            process.stdout.write('\x1Bc');
+            hideCursor();
+            // console.log('\n\n\n' + center(chalk.green('All Done!')));
+            showCursor();
+            process.exit();
+          }, 700);
+        } else {
+          const nextWord = wordList[index];
+          currentDefinition = await getDefinition(nextWord);
+          setTimeout(() => {
+            mode = 'typing';
+            display();
+          }, 700);
         }
-
-        const nextWord = wordList[index];
-        currentDefinition = await getDefinition(nextWord);
-        display();
       }
     } else {
       mode = 'error';
-      flashError();
+      flash(chalk.red);
       setTimeout(() => {
         userInput = '';
         hasStarted = false;
@@ -170,6 +154,21 @@ process.stdin.on('keypress', async (str, key) => {
         display();
       }, 700);
     }
+  } else if (key.sequence === '\u0004') { // Ctrl+D
+    wordList.splice(index, 1);
+    fs.writeFileSync(filepath, wordList.join('\n'));
+    if (index >= wordList.length) index = 0;
+    if (wordList.length === 0) {
+      process.stdout.write('\x1Bc');
+      // console.log(chalk.red('No more words left.'));
+      showCursor();
+      process.exit();
+    }
+    currentDefinition = await getDefinition(wordList[index]);
+    userInput = '';
+    hasStarted = false;
+    mode = 'typing';
+    display();
   }
 });
 
@@ -178,7 +177,7 @@ process.stdin.on('keypress', async (str, key) => {
     currentDefinition = await getDefinition(wordList[0]);
     display();
   } else {
-    console.log(chalk.red('The spelling list is empty.'));
+    // console.log(chalk.red('The spelling list is empty.'));
     showCursor();
     process.exit(0);
   }
