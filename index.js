@@ -4,6 +4,7 @@ const fs = require('fs');
 const readline = require('readline');
 const chalk = require('chalk');
 const path = require('path');
+const os = require('os');
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -12,17 +13,19 @@ const repeatIndex = args.findIndex(arg => arg === '-r' || arg === '--repeat');
 const repeatCount = (repeatIndex !== -1 && args[repeatIndex + 1]) ? parseInt(args[repeatIndex + 1], 10) : 1;
 const inputArg = args.find(arg => !arg.startsWith('-') && isNaN(arg));
 const wordToAdd = inputArg && !inputArg.endsWith('.txt') ? inputArg : null;
+
+const appDir = path.join(os.homedir(), '.spell');
+if (!fs.existsSync(appDir)) fs.mkdirSync(appDir);
 const filename = 'spellingList.txt';
-const filepath = path.resolve(process.cwd(), filename);
+const filepath = path.join(appDir, filename);
 
 if (!fs.existsSync(filepath)) fs.writeFileSync(filepath, '');
 if (wordToAdd) {
   fs.appendFileSync(filepath, `\n${wordToAdd}`);
-  console.log(chalk.green(`Added "${wordToAdd}" to ${filename}`));
   process.exit(0);
 }
 
-const wordList = fs.readFileSync(filepath, 'utf8')
+let wordList = fs.readFileSync(filepath, 'utf8')
   .split('\n')
   .map(w => w.trim())
   .filter(w => w.length > 0);
@@ -57,9 +60,7 @@ async function getDefinition(word) {
     const data = await res.json();
     const def = data[0]?.meanings[0]?.definitions[0]?.definition;
     return def || chalk.gray('(no definition found)');
-  } catch {
-    // return chalk.gray('(definition unavailable)');
-  }
+  } catch {}
 }
 
 function center(text) {
@@ -88,16 +89,15 @@ function display(wordOverride = null, colorFn = chalk.white) {
   hideCursor();
   console.log('\n\n\n\n');
   console.log(center(colorFn(displayWord)));
-  // console.log('\n' + center(chalk.yellow(`💡 ${currentDefinition}`)));
-  // console.log('\n' + center(chalk.gray(`✅ ${correctStreak}/${repeatCount}`)));
 }
 
 function flash(colorFn) {
   const word = wordList[index];
+  const coloredWord = colorFn(word);
   process.stdout.write('\x1Bc');
   hideCursor();
   console.log('\n\n\n\n');
-  console.log(center(colorFn(word)));
+  console.log(center(coloredWord));
 }
 
 process.stdin.on('keypress', async (str, key) => {
@@ -130,7 +130,6 @@ process.stdin.on('keypress', async (str, key) => {
           setTimeout(() => {
             process.stdout.write('\x1Bc');
             hideCursor();
-            // console.log('\n\n\n' + center(chalk.green('All Done!')));
             showCursor();
             process.exit();
           }, 700);
@@ -154,16 +153,22 @@ process.stdin.on('keypress', async (str, key) => {
         display();
       }, 700);
     }
-  } else if (key.sequence === '\u0004') { // Ctrl+D
+  }
+});
+
+process.stdin.on('data', async (chunk) => {
+  if (chunk.length === 1 && chunk[0] === 4) { // Ctrl+D = ASCII 4
+    const removedWord = wordList[index];
     wordList.splice(index, 1);
     fs.writeFileSync(filepath, wordList.join('\n'));
+
     if (index >= wordList.length) index = 0;
     if (wordList.length === 0) {
       process.stdout.write('\x1Bc');
-      // console.log(chalk.red('No more words left.'));
       showCursor();
       process.exit();
     }
+
     currentDefinition = await getDefinition(wordList[index]);
     userInput = '';
     hasStarted = false;
@@ -177,7 +182,6 @@ process.stdin.on('keypress', async (str, key) => {
     currentDefinition = await getDefinition(wordList[0]);
     display();
   } else {
-    // console.log(chalk.red('The spelling list is empty.'));
     showCursor();
     process.exit(0);
   }

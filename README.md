@@ -1,51 +1,59 @@
 # Spell
 
-A minimalist terminal-based app to help you **master spelling and vocabulary** through repetition and precision.
+A minimalist terminal-based app to train your **spelling**, **vocabulary**, and **touch typing** — all at once.
 
-## Features
+## What It Does
 
-- 🔤 Practice spelling words from a customizable list.
-- 📚 Automatically fetches definitions to improve vocabulary.
-- 🔁 Repeat words multiple times to reinforce memory (`-r` or `--repeat`).
-- ✅ Clean, centered interface with visual feedback.
-- ⌨️ Fully keyboard-controlled; perfect for touch typists.
-- 🧠 Delete mastered words with `Ctrl+D`.
+- 🔠 You type vocabulary words — but the moment you begin, the word disappears.
+- 🧠 This unique mechanic forces you to **recall the full spelling from memory**.
+- 🔁 You can configure the number of correct repetitions required before moving on.
+- 📚 Definitions are fetched automatically to deepen your understanding.
+- ✅ Clean, centered interface with visual feedback in **red** and **green** for instant correction.
+- ⌨️ Designed for **touch typists** — no mouse needed, just your keyboard and focus.
 
 ## Usage
 
-To run the trainer:
+Run the trainer:
 ```bash
 spell
 ```
 
-To add a new word:
+Add a new word:
 ```bash
 spell yourNewWord
 ```
 
-To drill each word `n` times before moving to the next:
+Repeat each word `n` times before moving to the next (for extra drilling):
 ```bash
 spell -r 3
 ```
 
-## Notes
-
-- Words are stored in a file named `spellingList.txt` in the current directory.
-- Internet is required for fetching definitions.
-- This tool is ideal for focused, repetition-based learning.
+Delete the current word (once mastered):
+```bash
+# While inside the trainer:
+Ctrl+D
+```
 
 ## Installation
 
 Link the script globally:
 ```bash
 sudo ln -s /full/path/to/index.js /usr/local/bin/spell
-```
-
-Ensure it's executable:
-```bash
 chmod +x /full/path/to/index.js
 ```
 
+## Data
+
+- Words are saved in `spellingList.txt` in your current directory.
+- Internet is required to fetch word definitions.
+
 ---
 
-Happy spelling and word mastering! 🌟
+### Why Use Spell?
+
+This is not just a spelling app — it's a **brain training tool** for:
+- Building muscle memory through typing
+- Retaining vocabulary
+- Improving spelling accuracy
+
+Give it a try. Your fingers — and your vocabulary — will thank you.
