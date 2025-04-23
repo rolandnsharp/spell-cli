@@ -1,38 +1,51 @@
-spell-cli
-A minimalist terminal-based spelling trainer built for touch typing and memory reinforcement. Designed to improve spelling through repetition and muscle memory—without looking at the word once typing begins.
+# Spell
 
-Features:
+A minimalist terminal-based app to help you **master spelling and vocabulary** through repetition and precision.
 
-Displays one word at a time from a local list
+## Features
 
-Word disappears as soon as typing begins
+- 🔤 Practice spelling words from a customizable list.
+- 📚 Automatically fetches definitions to improve vocabulary.
+- 🔁 Repeat words multiple times to reinforce memory (`-r` or `--repeat`).
+- ✅ Clean, centered interface with visual feedback.
+- ⌨️ Fully keyboard-controlled; perfect for touch typists.
+- 🧠 Delete mastered words with `Ctrl+D`.
 
-Red flash + retry on misspellings
+## Usage
 
-Dictionary definition shown while practicing
+To run the trainer:
+```bash
+spell
+```
 
-Simple CLI word adder: spell yourNewWord
+To add a new word:
+```bash
+spell yourNewWord
+```
 
-Installation:
+To drill each word `n` times before moving to the next:
+```bash
+spell -r 3
+```
 
-Clone the repo and link the CLI globally: git clone git@github.com:rolandnsharp/spell-cli.git cd spell-cli npm install npm link
+## Notes
 
-This makes the spell command available globally on your system.
+- Words are stored in a file named `spellingList.txt` in the current directory.
+- Internet is required for fetching definitions.
+- This tool is ideal for focused, repetition-based learning.
 
-How to Run:
+## Installation
 
-To start the spelling trainer: spell
+Link the script globally:
+```bash
+sudo ln -s /full/path/to/index.js /usr/local/bin/spell
+```
 
-To add a new word to your spelling list: spell yourNewSpellingWord
+Ensure it's executable:
+```bash
+chmod +x /full/path/to/index.js
+```
 
-Example: spell phenomenon
+---
 
-Requirements:
-
-Node.js v18 or newer
-
-Internet connection (for fetching definitions)
-
-License: MIT License
-
-Made with care by @rolandnsharp
+Happy spelling and word mastering! 🌟
